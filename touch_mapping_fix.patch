@@ -1,0 +1,108 @@
+diff --git a/src/input.cpp b/src/input.cpp
+index 768ddece..518de72c 100644
+--- a/src/input.cpp
++++ b/src/input.cpp
+@@ -879,12 +879,6 @@ namespace input {
+       return;
+     }
+ 
+-    // Convert the client normalized coordinates to touchport coordinates
+-    auto coords = client_to_touchport(input, {from_clamped_netfloat(packet->x, 0.0f, 1.0f) * 65535.f, from_clamped_netfloat(packet->y, 0.0f, 1.0f) * 65535.f}, {65535.f, 65535.f});
+-    if (!coords) {
+-      return;
+-    }
+-
+     auto &touch_port = input->touch_port;
+     platf::touch_port_t abs_port {
+       touch_port.offset_x,
+@@ -893,9 +887,6 @@ namespace input {
+       touch_port.env_height
+     };
+ 
+-    // Renormalize the coordinates
+-    coords->first /= abs_port.width;
+-    coords->second /= abs_port.height;
+ 
+     // Normalize rotation value to 0-359 degree range
+     auto rotation = util::endian::little(packet->rotation);
+@@ -903,23 +894,15 @@ namespace input {
+       rotation %= 360;
+     }
+ 
+-    // Normalize the contact area based on the touchport
+-    auto contact_area = scale_client_contact_area(
+-      {from_clamped_netfloat(packet->contactAreaMajor, 0.0f, 1.0f) * 65535.f,
+-       from_clamped_netfloat(packet->contactAreaMinor, 0.0f, 1.0f) * 65535.f},
+-      rotation,
+-      {abs_port.width / 65535.f, abs_port.height / 65535.f}
+-    );
+-
+     platf::touch_input_t touch {
+       packet->eventType,
+       rotation,
+       util::endian::little(packet->pointerId),
+-      coords->first,
+-      coords->second,
++      from_clamped_netfloat(packet->x, 0.0f, 1.0f),
++      from_clamped_netfloat(packet->y, 0.0f, 1.0f),
+       from_clamped_netfloat(packet->pressureOrDistance, 0.0f, 1.0f),
+-      contact_area.first,
+-      contact_area.second,
++      from_clamped_netfloat(packet->contactAreaMajor, 0.0f, 1.0f),
++      from_clamped_netfloat(packet->contactAreaMinor, 0.0f, 1.0f),
+     };
+ 
+     platf::touch_update(input->client_context.get(), abs_port, touch);
+@@ -935,12 +918,6 @@ namespace input {
+       return;
+     }
+ 
+-    // Convert the client normalized coordinates to touchport coordinates
+-    auto coords = client_to_touchport(input, {from_clamped_netfloat(packet->x, 0.0f, 1.0f) * 65535.f, from_clamped_netfloat(packet->y, 0.0f, 1.0f) * 65535.f}, {65535.f, 65535.f});
+-    if (!coords) {
+-      return;
+-    }
+-
+     auto &touch_port = input->touch_port;
+     platf::touch_port_t abs_port {
+       touch_port.offset_x,
+@@ -949,35 +926,23 @@ namespace input {
+       touch_port.env_height
+     };
+ 
+-    // Renormalize the coordinates
+-    coords->first /= abs_port.width;
+-    coords->second /= abs_port.height;
+-
+     // Normalize rotation value to 0-359 degree range
+     auto rotation = util::endian::little(packet->rotation);
+     if (rotation != LI_ROT_UNKNOWN) {
+       rotation %= 360;
+     }
+ 
+-    // Normalize the contact area based on the touchport
+-    auto contact_area = scale_client_contact_area(
+-      {from_clamped_netfloat(packet->contactAreaMajor, 0.0f, 1.0f) * 65535.f,
+-       from_clamped_netfloat(packet->contactAreaMinor, 0.0f, 1.0f) * 65535.f},
+-      rotation,
+-      {abs_port.width / 65535.f, abs_port.height / 65535.f}
+-    );
+-
+     platf::pen_input_t pen {
+       packet->eventType,
+       packet->toolType,
+       packet->penButtons,
+       packet->tilt,
+       rotation,
+-      coords->first,
+-      coords->second,
++      from_clamped_netfloat(packet->x, 0.0f, 1.0f),
++      from_clamped_netfloat(packet->y, 0.0f, 1.0f),
+       from_clamped_netfloat(packet->pressureOrDistance, 0.0f, 1.0f),
+-      contact_area.first,
+-      contact_area.second,
++      from_clamped_netfloat(packet->contactAreaMajor, 0.0f, 1.0f),
++      from_clamped_netfloat(packet->contactAreaMinor, 0.0f, 1.0f),
+     };
+ 
+     platf::pen_update(input->client_context.get(), abs_port, pen);
